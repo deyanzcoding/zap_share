@@ -6,6 +6,7 @@
     <title>ZapShare Ultra - Pro Core</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="theme-color" content="#2563eb">
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -311,43 +312,20 @@
             }, 3500);
         }
 
-        function initializePeerCloudEngine() {
-            myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
-            
-            peerInstance = new Peer(myRoomCode, {
-                debug: 1,
-                host: '0.peerjs.com',
-                port: 443,
-                secure: true,
-                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-            });
-
-            peerInstance.on('open', (id) => {
-                document.getElementById('myUsernameDisplay').innerText = "Online - Room " + id;
-                document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-emerald-500";
-            });
-
-            peerInstance.on('connection', (conn) => {
-                networkConnection = conn;
-                setupConnectionDataListeners();
-            });
-
-            peerInstance.on('error', (err) => {
-                console.error("Cloud Error Catch Block:", err.type);
-                document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-rose-500";
-                document.getElementById('myUsernameDisplay').innerText = "Error - Reconnecting";
-                
-                if(err.type === 'unavailable-id') {
-                    myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
-                    setTimeout(initializePeerCloudEngine, 1000);
-                } else if(err.type === 'peer-not-found') {
-                    showMessage("Room code not found. Make sure the other phone shows its QR code!", false);
-                } else {
-                    showMessage("Cloud handshake failed. Auto-retrying route connection...", false);
-                    setTimeout(initializePeerCloudEngine, 3000);
-                }
-            });
-        }
+function initializePeerCloudEngine() {
+    myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    // Updated robust initialization configuration 
+    peerInstance = new Peer(myRoomCode, {
+        debug: 1,
+        host: '0.peerjs.com', // Ensure this matches current public paths
+        port: 443,
+        secure: true,
+        path: '/'  // explicitly adding default root path can prevent route mapping drops
+    });
+    
+    // ... rest of your code ...
+}
 
         function switchTab(id) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
