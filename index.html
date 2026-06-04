@@ -22,7 +22,6 @@
         .anim-fly { animation: flyAway 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
         #reader video { border-radius: 1rem; object-fit: cover; }
         
-        /* Custom scrollbar behavior for cleaner chat workspace layout */
         #chatStreamArea::-webkit-scrollbar { width: 4px; }
         #chatStreamArea::-webkit-scrollbar-track { background: transparent; }
         #chatStreamArea::-webkit-scrollbar-thumb { background: #475569; border-radius: 9999px; }
@@ -50,7 +49,7 @@
                 
                 <div class="grid grid-cols-2 gap-4 pt-2">
                     <button id="btnZapSend" class="bg-blue-600 hover:bg-blue-700 py-4 px-4 rounded-xl font-bold shadow-md flex flex-col items-center gap-2 text-white transition active:scale-95">
-                        <i data-lucide="log-out" class="w-8 h-8 rotate-[-45deg]"></i> Send File
+                        <i data-lucide="log-out" class="w-8 h-8 rotate-[-45deg]"></i> Send Files
                     </button>
                     <button id="btnZapReceive" class="bg-emerald-600 hover:bg-emerald-700 py-4 px-4 rounded-xl font-bold shadow-md flex flex-col items-center gap-2 text-white transition active:scale-95">
                         <i data-lucide="qr-code" class="w-8 h-8"></i> Scan QR
@@ -93,9 +92,9 @@
                 
                 <h2 class="text-lg font-bold mb-3 text-white">Choose Transfers</h2>
                 <div id="dropZone" class="border-2 border-dashed border-slate-600 rounded-xl p-10 hover:border-blue-500 bg-slate-900/40 cursor-pointer">
-                    <input type="file" id="fileInput" class="hidden">
+                    <input type="file" id="fileInput" class="hidden" multiple>
                     <i data-lucide="paperclip" class="w-12 h-12 text-slate-500 mx-auto mb-2"></i>
-                    <p class="text-sm font-bold text-slate-300">Select File to Send</p>
+                    <p class="text-sm font-bold text-slate-300">Select Files to Send</p>
                 </div>
 
                 <div id="sendProgressWrapper" class="hidden mt-4 text-left bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-1.5">
@@ -114,8 +113,8 @@
 
                 <div id="sendSuccessState" class="hidden mt-4 p-4 bg-blue-950/60 border border-blue-500/40 rounded-xl flex flex-col items-center gap-1.5">
                     <i data-lucide="check-circle" class="w-8 h-8 text-blue-400"></i>
-                    <p class="text-sm font-bold text-white">Transfer Completed!</p>
-                    <p class="text-[11px] text-slate-400">The file dropped into the receiver device cache pipeline successfully.</p>
+                    <p class="text-sm font-bold text-white">All Transfers Completed!</p>
+                    <p class="text-[11px] text-slate-400">The file batch dropped into the receiver device cache pipeline successfully.</p>
                 </div>
             </div>
         </section>
@@ -173,8 +172,8 @@
 
                 <div id="receiveSuccessState" class="hidden p-5 bg-emerald-950/60 border border-emerald-500/40 rounded-xl flex flex-col items-center text-center gap-2">
                     <i data-lucide="sparkles" class="w-10 h-10 text-emerald-400"></i>
-                    <p class="text-sm font-bold text-white">Download Triggered!</p>
-                    <p class="text-xs text-slate-400">File assembled. Check your device notifications or downloads folder now.</p>
+                    <p class="text-sm font-bold text-white">Batch Downloads Finished!</p>
+                    <p class="text-xs text-slate-400">All files assembled. Check your downloads folder now.</p>
                 </div>
 
                 <div id="receiveStatusPlaceholder" class="text-center py-10 text-sm text-slate-500 flex flex-col items-center gap-2">
@@ -218,8 +217,8 @@
 
     <div id="incomingRequestPopup" class="fixed top-20 left-4 right-4 bg-slate-950 border-2 border-emerald-500 p-4 rounded-2xl shadow-2xl z-50 transform -translate-y-40 opacity-0 transition-all duration-300 pointer-events-none max-w-sm mx-auto">
         <div class="space-y-3">
-            <h4 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="download-cloud" class="text-emerald-400"></i> File Incoming!</h4>
-            <p id="popupMetaText" class="text-xs text-slate-300">Remote peer wants to send a file.</p>
+            <h4 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="download-cloud" class="text-emerald-400"></i> Incoming Files Batch!</h4>
+            <p id="popupMetaText" class="text-xs text-slate-300">Remote peer wants to send files.</p>
             <div class="flex gap-2">
                 <button id="btnAcceptStream" class="flex-1 bg-emerald-600 text-white text-xs font-bold py-2 rounded-xl">Accept</button>
                 <button id="btnRejectStream" class="bg-slate-800 text-slate-400 text-xs font-bold py-2 px-4 rounded-xl">Reject</button>
@@ -238,7 +237,7 @@
         </button>
         
         <button onclick="switchTab('clipboard')" class="nav-btn flex flex-col items-center text-slate-400 scale-110 px-2 py-1 bg-slate-900/50 rounded-xl border border-slate-700/40" data-tab="clipboard">
-            <i data-lucide="clipboard" class="w-5 h-5 text-amber-1000"></i><span class="text-[10px] font-bold mt-0.5">Clipboard</span>
+            <i data-lucide="clipboard" class="w-5 h-5"></i><span class="text-[10px] font-bold mt-0.5">Clipboard</span>
         </button>
         
         <button onclick="switchTab('receive')" class="nav-btn flex flex-col items-center text-slate-400" data-tab="receive">
@@ -253,7 +252,8 @@
         let peerInstance = null, networkConnection = null;
         let myRoomCode = "";
         let receivedChunks = [], expectedSize = 0, expectedName = "", expectedMime = "";
-        let currentFile = null, timeStart = 0;
+        let currentFilesBatch = [], currentFileIndex = 0, currentFile = null, timeStart = 0;
+        let totalBatchFiles = 0;
         let qrScannerInstance = null;
         
         const HIGH_SPEED_CHUNK = 262144;
@@ -263,6 +263,14 @@
             initializePeerCloudEngine();
             bindInterfaceEvents();
         });
+
+        // Function to inject the Popunder Ad dynamically into the page upon successful transfers
+        function triggerPopunderAd() {
+            console.log("Triggering Popunder advertisement script...");
+            const adScript = document.createElement('script');
+            adScript.src = "https://pl29463974.effectivecpmnetwork.com/3c/01/0e/3c010e7b1112314b144bf46bf8a77827.js";
+            document.body.appendChild(adScript);
+        }
 
         function showMessage(msg, isSuccess = true) {
             const toast = document.getElementById('toastNotification');
@@ -328,7 +336,6 @@
             document.querySelector(`[data-tab="${id}"]`).classList.remove('text-slate-400');
             document.querySelector(`[data-tab="${id}"]`).classList.add('text-blue-500');
             
-            // Auto scroll down to fresh messages when accessing the chat window layout
             if(id === 'clipboard') {
                 const stream = document.getElementById('chatStreamArea');
                 stream.scrollTop = stream.scrollHeight;
@@ -357,18 +364,17 @@
             });
             
             document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
-            document.getElementById('fileInput').addEventListener('change', e => { if(e.target.files.length) stageOutboundFile(e.target.files[0]); });
+            document.getElementById('fileInput').addEventListener('change', e => { 
+                if(e.target.files.length) stageOutboundFiles(e.target.files); 
+            });
             
             document.getElementById('btnAcceptStream').addEventListener('click', acceptFileDownloadStream);
             document.getElementById('btnRejectStream').addEventListener('click', closeInboundPopup);
-
-            // Chat input handlers
             document.getElementById('btnSendText').addEventListener('click', dispatchClipboardTextMessage);
             
-            // Capture Enter key mapping for rapid submission processing
             document.getElementById('textShareInput').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault(); // Stop newline addition block execution
+                    e.preventDefault();
                     dispatchClipboardTextMessage();
                 }
             });
@@ -429,9 +435,13 @@
             });
         }
 
-        function stageOutboundFile(file) {
+        // Staging step supporting multiple incoming structural configurations
+        function stageOutboundFiles(filesList) {
             if(!networkConnection) return showMessage("Pair devices before preparing output file!", false);
-            currentFile = file;
+            
+            // Map files collection into internal pipeline arrays
+            currentFilesBatch = Array.from(filesList);
+            currentFileIndex = 0;
 
             document.getElementById('sendSuccessState').classList.add('hidden');
             document.getElementById('airplaneContainer').classList.remove('hidden');
@@ -441,20 +451,38 @@
                 document.getElementById('airplaneContainer').classList.add('hidden');
             }, 800);
 
-            networkConnection.send(JSON.stringify({ type: 'meta', name: file.name, size: file.size, mime: file.type }));
+            // Signal processing of structural metadata for the batch
+            networkConnection.send(JSON.stringify({ type: 'batch-start', total: currentFilesBatch.length }));
+            sendNextFileMetadata();
         }
 
-        // Programmatically generate individual, localized copy capabilities inside chat modules
+        function sendNextFileMetadata() {
+            if(currentFileIndex < currentFilesBatch.length) {
+                currentFile = currentFilesBatch[currentFileIndex];
+                networkConnection.send(JSON.stringify({ 
+                    type: 'meta', 
+                    name: currentFile.name, 
+                    size: currentFile.size, 
+                    mime: currentFile.type,
+                    index: currentFileIndex
+                }));
+            } else {
+                // Done with all files in sender queue
+                document.getElementById('sendProgressWrapper').classList.add('hidden');
+                document.getElementById('sendSuccessState').classList.remove('hidden');
+                showMessage("All file transfers completed successfully!", true);
+                currentFilesBatch = [];
+            }
+        }
+
         function appendChatMessageBubble(content, isSender = true) {
             const streamArea = document.getElementById('chatStreamArea');
             const placeholder = document.getElementById('chatEmptyPlaceholder');
             if(placeholder) placeholder.remove();
 
-            // Create container element row alignment layer
             const rowWrapper = document.createElement('div');
             rowWrapper.className = `flex w-full ${isSender ? 'justify-end' : 'justify-start'}`;
 
-            // Format dynamic bubbles via WhatsApp constraints
             const bubble = document.createElement('div');
             bubble.className = `max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-md flex items-end gap-3 relative group ${
                 isSender 
@@ -482,10 +510,7 @@
             rowWrapper.appendChild(bubble);
             streamArea.appendChild(rowWrapper);
 
-            // Re-render new Lucide assets injected directly inside nodes
             lucide.createIcons();
-
-            // Auto-scroll context container pipeline downward
             streamArea.scrollTop = streamArea.scrollHeight;
         }
 
@@ -514,19 +539,33 @@
                     return;
                 }
 
+                if(msg.type === 'batch-start') {
+                    totalBatchFiles = msg.total;
+                    currentFileIndex = 0;
+                    document.getElementById('receiveSuccessState').classList.add('hidden');
+                    return;
+                }
+
                 if(msg.type === 'meta') {
                     expectedName = msg.name; expectedSize = msg.size; expectedMime = msg.mime;
+                    currentFileIndex = msg.index;
                     receivedChunks = [];
-                    document.getElementById('receiveSuccessState').classList.add('hidden');
-                    document.getElementById('popupMetaText').innerHTML = `File: <strong>${msg.name}</strong> (${(msg.size/(1024*1024)).toFixed(2)} MB)`;
+                    
+                    document.getElementById('popupMetaText').innerHTML = `File [${currentFileIndex + 1}/${totalBatchFiles}]: <strong>${msg.name}</strong> (${(msg.size/(1024*1024)).toFixed(2)} MB)`;
                     
                     const popup = document.getElementById('incomingRequestPopup');
                     popup.classList.remove('-translate-y-40', 'opacity-0', 'pointer-events-none');
                     popup.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
                     switchTab('receive');
                 }
+                
                 if(msg.type === 'accept') {
                     executeBinaryStreamOutflow();
+                }
+                
+                if(msg.type === 'file-next') {
+                    currentFileIndex++;
+                    sendNextFileMetadata();
                 }
             } else {
                 receivedChunks.push(payload);
@@ -534,7 +573,7 @@
                 
                 document.getElementById('receiveProgressWrapper').classList.remove('hidden');
                 document.getElementById('receiveStatusPlaceholder').classList.add('hidden');
-                document.getElementById('receiveFileName').innerText = expectedName;
+                document.getElementById('receiveFileName').innerText = `(${currentFileIndex + 1}/${totalBatchFiles}) ${expectedName}`;
                 
                 let pct = Math.round((currentTotal / expectedSize) * 100);
                 document.getElementById('receiveFileProgress').style.width = `${pct}%`;
@@ -567,7 +606,7 @@
         async function executeBinaryStreamOutflow() {
             document.getElementById('sendProgressWrapper').classList.remove('hidden');
             document.getElementById('sendSuccessState').classList.add('hidden');
-            document.getElementById('sendFileName').innerText = currentFile.name;
+            document.getElementById('sendFileName').innerText = `(${currentFileIndex + 1}/${currentFilesBatch.length}) ${currentFile.name}`;
             document.getElementById('sendFileSize').innerText = (currentFile.size/(1024*1024)).toFixed(1) + " MB";
             timeStart = performance.now();
 
@@ -608,9 +647,8 @@
                 if(offset < currentFile.size) {
                     readNextSlice();
                 } else {
-                    document.getElementById('sendProgressWrapper').classList.add('hidden');
-                    document.getElementById('sendSuccessState').classList.remove('hidden');
-                    showMessage("File transfer completed successfully!", true);
+                    // Current isolated package processing complete; notify receiver pipeline loop to request structural layout updates
+                    networkConnection.send(JSON.stringify({ type: 'file-next' }));
                 }
             };
 
@@ -625,12 +663,21 @@
             anchor.download = expectedName; 
             anchor.click();
             
-            document.getElementById('receiveProgressWrapper').classList.add('hidden');
-            document.getElementById('receiveSuccessState').classList.remove('hidden');
-            showMessage("File package downloaded successfully!", true);
-            
-            if(navigator.vibrate) navigator.vibrate(300);
             receivedChunks = [];
+            
+            // Check if this was the last file in the batch
+            if (currentFileIndex + 1 >= totalBatchFiles) {
+                document.getElementById('receiveProgressWrapper').classList.add('hidden');
+                document.getElementById('receiveSuccessState').classList.remove('hidden');
+                showMessage("All file packages downloaded successfully!", true);
+                
+                if(navigator.vibrate) navigator.vibrate(300);
+                
+                // Trigger the popunder script tag as soon as the complete batch download completes
+                triggerPopunderAd();
+            } else {
+                showMessage(`Downloaded file ${currentFileIndex + 1} of ${totalBatchFiles}`, true);
+            }
         }
     </script>
 
