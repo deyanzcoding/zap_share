@@ -287,44 +287,51 @@
                 toast.classList.add('opacity-0', 'translate-y-2');
             }, 3500);
         }
-
-        function initializePeerCloudEngine() {
-            myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
-            
-            peerInstance = new Peer(myRoomCode, {
-                debug: 1,
-                host: '0.peerjs.com',
-                port: 443,
-                secure: true,
-                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-            });
-
-            peerInstance.on('open', (id) => {
-                document.getElementById('myUsernameDisplay').innerText = "Online - Room " + id;
-                document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-emerald-500";
-            });
-
-            peerInstance.on('connection', (conn) => {
-                networkConnection = conn;
-                setupConnectionDataListeners();
-            });
-
-            peerInstance.on('error', (err) => {
-                console.error("Cloud Error Catch Block:", err.type);
-                document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-rose-500";
-                document.getElementById('myUsernameDisplay').innerText = "Error - Reconnecting";
-                
-                if(err.type === 'unavailable-id') {
-                    myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
-                    setTimeout(initializePeerCloudEngine, 1000);
-                } else if(err.type === 'peer-not-found') {
-                    showMessage("Room code not found. Make sure the other phone shows its QR code!", false);
-                } else {
-                    showMessage("Cloud handshake failed. Auto-retrying route connection...", false);
-                    setTimeout(initializePeerCloudEngine, 3000);
-                }
-            });
+function initializePeerCloudEngine() {
+    // Generate a reliable 4-digit token
+    myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    // Explicitly forcing secure cloud routing configurations
+    peerInstance = new Peer(myRoomCode, {
+        debug: 1,
+        host: '0.peerjs.com',
+        port: 443,
+        secure: true,
+        pingInterval: 5000, // Keeps the Vercel deployment connection alive
+        config: { 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ] 
         }
+    });
+
+    peerInstance.on('open', (id) => {
+        document.getElementById('myUsernameDisplay').innerText = "Online - Room " + id;
+        document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-emerald-500";
+    });
+
+    peerInstance.on('connection', (conn) => {
+        networkConnection = conn;
+        setupConnectionDataListeners();
+    });
+
+    peerInstance.on('error', (err) => {
+        console.error("Cloud Error Catch Block:", err.type);
+        document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-rose-500";
+        
+        if(err.type === 'unavailable-id') {
+            // If the 4-digit code is taken on the public server, try another one immediately
+            myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            setTimeout(initializePeerCloudEngine, 500);
+        } else if(err.type === 'peer-not-found') {
+            showMessage("Room code not found. Make sure the other device is open!", false);
+        } else {
+            showMessage("Handshake lost. Re-establishing secure pipe...", false);
+            setTimeout(initializePeerCloudEngine, 3000);
+        }
+    });
+}
 
         function switchTab(id) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
