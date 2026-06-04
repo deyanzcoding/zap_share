@@ -6,7 +6,6 @@
     <title>ZapShare Ultra - Pro Core</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="theme-color" content="#2563eb">
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -23,6 +22,7 @@
         .anim-fly { animation: flyAway 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
         #reader video { border-radius: 1rem; object-fit: cover; }
         
+        /* Custom scrollbar behavior for cleaner chat workspace layout */
         #chatStreamArea::-webkit-scrollbar { width: 4px; }
         #chatStreamArea::-webkit-scrollbar-track { background: transparent; }
         #chatStreamArea::-webkit-scrollbar-thumb { background: #475569; border-radius: 9999px; }
@@ -75,11 +75,6 @@
                         <button id="btnManualConnect" class="bg-blue-600 px-4 rounded-xl text-xs font-bold text-white">Link</button>
                     </div>
                 </div>
-
-                <div id="historyDevicesWrapper" class="pt-2 border-t border-slate-700 text-left hidden">
-                    <label class="block text-[10px] text-slate-400 mb-1.5">Recent Saved Peer Devices:</label>
-                    <div id="historyDevicesChips" class="flex flex-wrap gap-1.5"></div>
-                </div>
             </div>
 
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
@@ -98,9 +93,9 @@
                 
                 <h2 class="text-lg font-bold mb-3 text-white">Choose Transfers</h2>
                 <div id="dropZone" class="border-2 border-dashed border-slate-600 rounded-xl p-10 hover:border-blue-500 bg-slate-900/40 cursor-pointer">
-                    <input type="file" id="fileInput" class="hidden" multiple>
+                    <input type="file" id="fileInput" class="hidden">
                     <i data-lucide="paperclip" class="w-12 h-12 text-slate-500 mx-auto mb-2"></i>
-                    <p class="text-sm font-bold text-slate-300">Select File(s) to Send</p>
+                    <p class="text-sm font-bold text-slate-300">Select File to Send</p>
                 </div>
 
                 <div id="sendProgressWrapper" class="hidden mt-4 text-left bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-1.5">
@@ -115,13 +110,12 @@
                         <span id="sendFileSize">0 MB</span>
                         <span id="sendFilePercent">0%</span>
                     </div>
-                    <div id="sendBatchStatus" class="text-[10px] text-amber-400 pt-1 font-semibold"></div>
                 </div>
 
                 <div id="sendSuccessState" class="hidden mt-4 p-4 bg-blue-950/60 border border-blue-500/40 rounded-xl flex flex-col items-center gap-1.5">
                     <i data-lucide="check-circle" class="w-8 h-8 text-blue-400"></i>
                     <p class="text-sm font-bold text-white">Transfer Completed!</p>
-                    <p class="text-[11px] text-slate-400">All queued batch components safely offloaded onto remote node cache pipeline.</p>
+                    <p class="text-[11px] text-slate-400">The file dropped into the receiver device cache pipeline successfully.</p>
                 </div>
             </div>
         </section>
@@ -175,12 +169,6 @@
                         <span id="receiveFileSize">0 MB</span>
                         <span id="receiveFilePercent">0%</span>
                     </div>
-                    <div id="receiveBatchStatus" class="text-[10px] text-emerald-400 pt-1 font-semibold"></div>
-                </div>
-
-                <div id="liveMediaPreviewCard" class="hidden p-3 bg-slate-950 border border-slate-700 rounded-xl space-y-2">
-                    <p class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Live Content Sandbox Preview</p>
-                    <div id="previewMediaRenderViewport" class="flex justify-center max-h-48 overflow-hidden rounded-lg bg-slate-900"></div>
                 </div>
 
                 <div id="receiveSuccessState" class="hidden p-5 bg-emerald-950/60 border border-emerald-500/40 rounded-xl flex flex-col items-center text-center gap-2">
@@ -200,14 +188,6 @@
             <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
                 <h2 class="text-lg font-bold flex items-center gap-2 text-white"><i data-lucide="sliders" class="text-blue-400"></i> System Preferences</h2>
                 
-                <div>
-                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Active Session Logs Buffer</h3>
-                    <div id="sessionLogsEmptyState" class="text-xs text-slate-500 bg-slate-900 p-4 rounded-xl border border-slate-700/60 text-center">
-                        No transactions captured during this execution.
-                    </div>
-                    <div id="sessionHistoryContainer" class="space-y-2 max-h-48 overflow-y-auto hidden"></div>
-                </div>
-
                 <div class="pt-2">
                     <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">About Application</h3>
                     <div class="space-y-2 text-xs">
@@ -258,7 +238,7 @@
         </button>
         
         <button onclick="switchTab('clipboard')" class="nav-btn flex flex-col items-center text-slate-400 scale-110 px-2 py-1 bg-slate-900/50 rounded-xl border border-slate-700/40" data-tab="clipboard">
-            <i data-lucide="clipboard" class="w-5 h-5"></i><span class="text-[10px] font-bold mt-0.5">Clipboard</span>
+            <i data-lucide="clipboard" class="w-5 h-5 text-amber-1000"></i><span class="text-[10px] font-bold mt-0.5">Clipboard</span>
         </button>
         
         <button onclick="switchTab('receive')" class="nav-btn flex flex-col items-center text-slate-400" data-tab="receive">
@@ -272,28 +252,16 @@
     <script>
         let peerInstance = null, networkConnection = null;
         let myRoomCode = "";
-        let qrScannerInstance = null;
-
-        // Upgraded Session Global Memory Structs for Multi-File Streams
-        let inboundManifestQueue = [], currentInboundFileIndex = 0;
-        let outboundFileQueue = [], currentOutboundFileIndex = 0;
         let receivedChunks = [], expectedSize = 0, expectedName = "", expectedMime = "";
-        let timeStart = 0;
-
-        // Resilient Keep-Alive Heartbeat variables
-        let heartbeatMonitorTimer = null;
-        let lastInboundHeartbeatTimestamp = 0;
-
-        // Active Application Storage Vault for Recoveries
-        let runtimeBlobObjectCache = [];
+        let currentFile = null, timeStart = 0;
+        let qrScannerInstance = null;
         
-        const HIGH_SPEED_CHUNK = 16384; // 16KB optimization for maximum WebRTC DataChannel cross-browser reliability
+        const HIGH_SPEED_CHUNK = 262144;
 
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             initializePeerCloudEngine();
             bindInterfaceEvents();
-            refreshHistoryPeerDisplayGrid();
         });
 
         function showMessage(msg, isSuccess = true) {
@@ -312,20 +280,43 @@
             }, 3500);
         }
 
-function initializePeerCloudEngine() {
-    myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
-    
-    // Updated robust initialization configuration 
-    peerInstance = new Peer(myRoomCode, {
-        debug: 1,
-        host: '0.peerjs.com', // Ensure this matches current public paths
-        port: 443,
-        secure: true,
-        path: '/'  // explicitly adding default root path can prevent route mapping drops
-    });
-    
-    // ... rest of your code ...
-}
+        function initializePeerCloudEngine() {
+            myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            
+            peerInstance = new Peer(myRoomCode, {
+                debug: 1,
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+            });
+
+            peerInstance.on('open', (id) => {
+                document.getElementById('myUsernameDisplay').innerText = "Online - Room " + id;
+                document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-emerald-500";
+            });
+
+            peerInstance.on('connection', (conn) => {
+                networkConnection = conn;
+                setupConnectionDataListeners();
+            });
+
+            peerInstance.on('error', (err) => {
+                console.error("Cloud Error Catch Block:", err.type);
+                document.getElementById('statusDot').className = "w-2 h-2 rounded-full bg-rose-500";
+                document.getElementById('myUsernameDisplay').innerText = "Error - Reconnecting";
+                
+                if(err.type === 'unavailable-id') {
+                    myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
+                    setTimeout(initializePeerCloudEngine, 1000);
+                } else if(err.type === 'peer-not-found') {
+                    showMessage("Room code not found. Make sure the other phone shows its QR code!", false);
+                } else {
+                    showMessage("Cloud handshake failed. Auto-retrying route connection...", false);
+                    setTimeout(initializePeerCloudEngine, 3000);
+                }
+            });
+        }
 
         function switchTab(id) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -337,6 +328,7 @@ function initializePeerCloudEngine() {
             document.querySelector(`[data-tab="${id}"]`).classList.remove('text-slate-400');
             document.querySelector(`[data-tab="${id}"]`).classList.add('text-blue-500');
             
+            // Auto scroll down to fresh messages when accessing the chat window layout
             if(id === 'clipboard') {
                 const stream = document.getElementById('chatStreamArea');
                 stream.scrollTop = stream.scrollHeight;
@@ -365,19 +357,18 @@ function initializePeerCloudEngine() {
             });
             
             document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
-            document.getElementById('fileInput').addEventListener('change', e => { 
-                if(e.target.files.length) {
-                    stageOutboundBatchFiles(e.target.files);
-                } 
-            });
+            document.getElementById('fileInput').addEventListener('change', e => { if(e.target.files.length) stageOutboundFile(e.target.files[0]); });
             
-            document.getElementById('btnAcceptStream').addEventListener('click', acceptIncomingFileBatchStream);
+            document.getElementById('btnAcceptStream').addEventListener('click', acceptFileDownloadStream);
             document.getElementById('btnRejectStream').addEventListener('click', closeInboundPopup);
+
+            // Chat input handlers
             document.getElementById('btnSendText').addEventListener('click', dispatchClipboardTextMessage);
             
+            // Capture Enter key mapping for rapid submission processing
             document.getElementById('textShareInput').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
+                    e.preventDefault(); // Stop newline addition block execution
                     dispatchClipboardTextMessage();
                 }
             });
@@ -423,11 +414,6 @@ function initializePeerCloudEngine() {
                 lucide.createIcons();
                 document.getElementById('qrContainerWrapper').classList.add('hidden');
                 showMessage("Device link pipeline verified!", true);
-                
-                // Keep-Alive Mechanism Setup
-                saveRoomToLocalStorageHistory(networkConnection.peer);
-                initiateHeartbeatKeepAliveEngine();
-
                 switchTab('send');
                 if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
             });
@@ -437,82 +423,15 @@ function initializePeerCloudEngine() {
             });
 
             networkConnection.on('close', () => {
-                terminateHeartbeatKeepAliveEngine();
                 document.getElementById('connectedDevicesList').innerHTML = `<span class="text-slate-500"><i data-lucide="unplug"></i> Disconnected</span>`;
                 lucide.createIcons();
                 showMessage("Connection terminated by peer.", false);
             });
         }
 
-        /* Upgrade 2: Local Storage Room Code History Logic */
-        function saveRoomToLocalStorageHistory(roomToken) {
-            if(roomToken === myRoomCode) return;
-            let currentHistory = JSON.parse(localStorage.getItem('zap_peer_history') || '[]');
-            if(!currentHistory.includes(roomToken)) {
-                currentHistory.unshift(roomToken);
-                if(currentHistory.length > 4) currentHistory.pop();
-                localStorage.setItem('zap_peer_history', JSON.stringify(currentHistory));
-            }
-            refreshHistoryPeerDisplayGrid();
-        }
-
-        function refreshHistoryPeerDisplayGrid() {
-            let currentHistory = JSON.parse(localStorage.getItem('zap_peer_history') || '[]');
-            const container = document.getElementById('historyDevicesWrapper');
-            const chipsArea = document.getElementById('historyDevicesChips');
-            
-            if(currentHistory.length === 0) {
-                container.classList.add('hidden');
-                return;
-            }
-            
-            container.classList.remove('hidden');
-            chipsArea.innerHTML = "";
-            currentHistory.forEach(token => {
-                const btn = document.createElement('button');
-                btn.className = "bg-slate-900 border border-slate-700 text-blue-400 font-mono text-xs px-2.5 py-1 rounded-lg hover:bg-slate-950 font-bold flex items-center gap-1 transition";
-                btn.innerHTML = `<i data-lucide="smartphone" class="w-3 h-3"></i> ${token}`;
-                btn.onclick = () => {
-                    showMessage(`Attempting handshake with saved node: ${token}...`);
-                    linkToTargetPeerRoom(token);
-                };
-                chipsArea.appendChild(btn);
-            });
-            lucide.createIcons();
-        }
-
-        /* Upgrade 6: Keep-Alive Heartbeat Watchdog Implementation */
-        function initiateHeartbeatKeepAliveEngine() {
-            terminateHeartbeatKeepAliveEngine();
-            lastInboundHeartbeatTimestamp = Date.now();
-            
-            heartbeatMonitorTimer = setInterval(() => {
-                if(networkConnection && networkConnection.open) {
-                    networkConnection.send(JSON.stringify({ type: 'ping' }));
-                    
-                    if(Date.now() - lastInboundHeartbeatTimestamp > 35000) {
-                        console.warn("Heartbeat missed for over 35s. Hard closing channel pipeline.");
-                        showMessage("Connection went stale. Closing pipeline.", false);
-                        networkConnection.close();
-                        terminateHeartbeatKeepAliveEngine();
-                    }
-                }
-            }, 15000);
-        }
-
-        function terminateHeartbeatKeepAliveEngine() {
-            if(heartbeatMonitorTimer) {
-                clearInterval(heartbeatMonitorTimer);
-                heartbeatMonitorTimer = null;
-            }
-        }
-
-        /* Upgrade 1: Multi-File Batch Transfer Processing Engine */
-        function stageOutboundBatchFiles(fileList) {
-            if(!networkConnection) return showMessage("Pair devices before preparing output data array!", false);
-            
-            outboundFileQueue = Array.from(fileList);
-            currentOutboundFileIndex = 0;
+        function stageOutboundFile(file) {
+            if(!networkConnection) return showMessage("Pair devices before preparing output file!", false);
+            currentFile = file;
 
             document.getElementById('sendSuccessState').classList.add('hidden');
             document.getElementById('airplaneContainer').classList.remove('hidden');
@@ -522,276 +441,20 @@ function initializePeerCloudEngine() {
                 document.getElementById('airplaneContainer').classList.add('hidden');
             }, 800);
 
-            // Transmit manifest contract packet mapping array items
-            let manifest = outboundFileQueue.map((f, i) => ({ id: i, name: f.name, size: f.size, mime: f.type }));
-            networkConnection.send(JSON.stringify({ type: 'manifest', files: manifest }));
+            networkConnection.send(JSON.stringify({ type: 'meta', name: file.name, size: file.size, mime: file.type }));
         }
 
-        async function processNextOutboundQueueSlice() {
-            if(currentOutboundFileIndex >= outboundFileQueue.length) {
-                document.getElementById('sendProgressWrapper').classList.add('hidden');
-                document.getElementById('sendSuccessState').classList.remove('hidden');
-                showMessage("All files transferred successfully!", true);
-                return;
-            }
-
-            let file = outboundFileQueue[currentOutboundFileIndex];
-            document.getElementById('sendProgressWrapper').classList.remove('hidden');
-            document.getElementById('sendFileName').innerText = file.name;
-            document.getElementById('sendFileSize').innerText = (file.size/(1024*1024)).toFixed(1) + " MB";
-            document.getElementById('sendBatchStatus').innerText = `Sending Item ${currentOutboundFileIndex + 1} of ${outboundFileQueue.length}`;
-            
-            timeStart = performance.now();
-            let offset = 0;
-            const fileReader = new FileReader();
-
-            const readNextSlice = () => {
-                if (offset < file.size) {
-                    const slice = file.slice(offset, offset + HIGH_SPEED_CHUNK);
-                    fileReader.readAsArrayBuffer(slice);
-                }
-            };
-
-            fileReader.onload = async (e) => {
-                if (networkConnection.dataChannel && networkConnection.dataChannel.bufferedAmount > 8388608) {
-                    await new Promise(resolve => {
-                        const checkInterval = setInterval(() => {
-                            if (networkConnection.dataChannel.bufferedAmount < 2097152) {
-                                clearInterval(checkInterval);
-                                resolve();
-                            }
-                        }, 4);
-                    });
-                }
-
-                networkConnection.send(e.target.result);
-                offset += e.target.result.byteLength;
-
-                let pct = Math.round((offset / file.size) * 100);
-                document.getElementById('sendFileProgress').style.width = `${pct}%`;
-                document.getElementById('sendFilePercent').innerText = `${pct}%`;
-                
-                let elapsed = (performance.now() - timeStart) / 1000;
-                if (elapsed > 0) {
-                    document.getElementById('sendFileSpeed').innerText = ((offset / 1024 / 1024) / elapsed).toFixed(1) + " MB/s";
-                }
-
-                if(offset < file.size) {
-                    readNextSlice();
-                } else {
-                    // Current item complete. Advance pipeline index tracking.
-                    currentOutboundFileIndex++;
-                    setTimeout(() => {
-                        networkConnection.send(JSON.stringify({ type: 'item_complete' }));
-                    }, 200);
-                }
-            };
-
-            readNextSlice();
-        }
-
-        function parseInboundPayloadMessage(payload) {
-            // Heartbeat interception filter logic
-            if(typeof payload === 'string' && payload.includes('"type":"ping"')) {
-                lastInboundHeartbeatTimestamp = Date.now();
-                networkConnection.send(JSON.stringify({ type: 'pong' }));
-                return;
-            }
-            if(typeof payload === 'string' && payload.includes('"type":"pong"')) {
-                lastInboundHeartbeatTimestamp = Date.now();
-                return;
-            }
-
-            if(typeof payload === 'string') {
-                const msg = JSON.parse(payload);
-                
-                if(msg.type === 'textClip') {
-                    appendChatMessageBubble(msg.content, false);
-                    switchTab('clipboard');
-                    showMessage("Inbound text clipboard message arrived!", true);
-                    if(navigator.vibrate) navigator.vibrate([80, 40, 80]);
-                    return;
-                }
-
-                if(msg.type === 'manifest') {
-                    inboundManifestQueue = msg.files;
-                    currentInboundFileIndex = 0;
-                    prepareInboundItemMetadataContract();
-                    return;
-                }
-
-                if(msg.type === 'accept') {
-                    processNextOutboundQueueSlice();
-                    return;
-                }
-
-                if(msg.type === 'item_complete') {
-                    finalizeDownloadAssembly();
-                    currentInboundFileIndex++;
-                    if(currentInboundFileIndex < inboundManifestQueue.length) {
-                        prepareInboundItemMetadataContract();
-                    } else {
-                        document.getElementById('receiveProgressWrapper').classList.add('hidden');
-                        document.getElementById('receiveSuccessState').classList.remove('hidden');
-                    }
-                    return;
-                }
-            } else {
-                // Handle raw incoming ArrayBuffer chunks safely
-                receivedChunks.push(payload);
-                let currentTotal = receivedChunks.reduce((a, b) => a + b.byteLength, 0);
-                
-                document.getElementById('receiveProgressWrapper').classList.remove('hidden');
-                document.getElementById('receiveStatusPlaceholder').classList.add('hidden');
-                document.getElementById('receiveFileName').innerText = expectedName;
-                document.getElementById('receiveBatchStatus').innerText = `Receiving Item ${currentInboundFileIndex + 1} of ${inboundManifestQueue.length}`;
-                
-                let pct = Math.round((currentTotal / expectedSize) * 100);
-                document.getElementById('receiveFileProgress').style.width = `${pct}%`;
-                document.getElementById('receiveFilePercent').innerText = `${pct}%`;
-                document.getElementById('receiveFileSize').innerText = `${(currentTotal/(1024*1024)).toFixed(1)} / ${(expectedSize/(1024*1024)).toFixed(1)} MB`;
-
-                let elapsed = (performance.now() - timeStart) / 1000;
-                if (elapsed > 0) {
-                    document.getElementById('receiveFileSpeed').innerText = ((currentTotal / 1024 / 1024) / elapsed).toFixed(1) + " MB/s";
-                }
-            }
-        }
-
-        function prepareInboundItemMetadataContract() {
-            let activeItem = inboundManifestQueue[currentInboundFileIndex];
-            expectedName = activeItem.name; 
-            expectedSize = activeItem.size; 
-            expectedMime = activeItem.mime;
-            receivedChunks = [];
-
-            document.getElementById('receiveSuccessState').classList.add('hidden');
-            document.getElementById('liveMediaPreviewCard').classList.add('hidden');
-            
-            // For the first file in the batch, show an accept modal. Auto-accept subsequent ones.
-            if(currentInboundFileIndex === 0) {
-                document.getElementById('popupMetaText').innerHTML = `Incoming batch containing <strong>${inboundManifestQueue.length} file(s)</strong>. <br><span class="text-[11px] text-slate-400">First item: ${expectedName}</span>`;
-                const popup = document.getElementById('incomingRequestPopup');
-                popup.classList.remove('-translate-y-40', 'opacity-0', 'pointer-events-none');
-                popup.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
-                switchTab('receive');
-            } else {
-                timeStart = performance.now();
-                networkConnection.send(JSON.stringify({ type: 'accept' }));
-            }
-        }
-
-        function acceptIncomingFileBatchStream() {
-            closeInboundPopup();
-            timeStart = performance.now();
-            networkConnection.send(JSON.stringify({ type: 'accept' }));
-        }
-
-        function closeInboundPopup() {
-            const popup = document.getElementById('incomingRequestPopup');
-            popup.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
-            popup.classList.add('-translate-y-40', 'opacity-0', 'pointer-events-none');
-        }
-
-        /* Upgrade 3 & 4: File Assembler, Previews, & Storage History Registry Loggers */
-        function finalizeDownloadAssembly() {
-            const blob = new Blob(receivedChunks, { type: expectedMime });
-            const url = URL.createObjectURL(blob);
-            
-            // Cache reference internally for historical storage access triggers
-            let historicalLogItem = {
-                id: Date.now(),
-                name: expectedName,
-                size: expectedSize,
-                mime: expectedMime,
-                objectUrl: url,
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            runtimeBlobObjectCache.push(historicalLogItem);
-            injectSessionHistoryTableNode(historicalLogItem);
-
-            // Execute Live Sandbox Preview Processing UI triggers
-            renderLiveViewportPreview(blob, expectedMime);
-
-            // Programmatically execute standard file save down pipeline link trigger
-            const anchor = document.createElement('a');
-            anchor.href = url; 
-            anchor.download = expectedName; 
-            anchor.click();
-            
-            showMessage(`Saved item: ${expectedName}`, true);
-            if(navigator.vibrate) navigator.vibrate(200);
-            receivedChunks = [];
-        }
-
-        function renderLiveViewportPreview(blob, mimeType) {
-            const card = document.getElementById('liveMediaPreviewCard');
-            const viewport = document.getElementById('previewMediaRenderViewport');
-            viewport.innerHTML = "";
-
-            if(mimeType.startsWith('image/')) {
-                card.classList.remove('hidden');
-                const img = document.createElement('img');
-                img.src = URL.createObjectURL(blob);
-                img.className = "max-w-full h-auto object-contain rounded-lg max-h-44";
-                viewport.appendChild(img);
-            } else if(mimeType.startsWith('audio/')) {
-                card.classList.remove('hidden');
-                const audio = document.createElement('audio');
-                audio.controls = true;
-                audio.src = URL.createObjectURL(blob);
-                audio.className = "w-full my-auto px-2";
-                viewport.appendChild(audio);
-            } else if(mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.includes('javascript')) {
-                card.classList.remove('hidden');
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const pre = document.createElement('pre');
-                    pre.className = "text-[11px] text-slate-300 font-mono p-3 overflow-auto w-full max-h-44 bg-slate-950 text-left whitespace-pre-wrap";
-                    pre.innerText = e.target.result.substring(0, 1500) + (e.target.result.length > 1500 ? "\n...[Truncated Content Check System Logs]..." : "");
-                    viewport.appendChild(pre);
-                };
-                reader.readAsText(blob);
-            }
-        }
-
-        function injectSessionHistoryTableNode(logItem) {
-            document.getElementById('sessionLogsEmptyState').classList.add('hidden');
-            const container = document.getElementById('sessionHistoryContainer');
-            container.classList.remove('hidden');
-
-            const itemNode = document.createElement('div');
-            itemNode.className = "flex items-center justify-between bg-slate-900 p-2.5 rounded-xl border border-slate-700/60 text-xs";
-            itemNode.innerHTML = `
-                <div class="truncate max-w-[240px] pr-2">
-                    <p class="font-semibold text-white truncate">${logItem.name}</p>
-                    <p class="text-[10px] text-slate-500">${logItem.timestamp} • ${(logItem.size/(1024*1024)).toFixed(2)} MB</p>
-                </div>
-                <button class="bg-slate-800 hover:bg-slate-700 text-blue-400 px-3 py-1.5 rounded-lg font-bold text-[11px] transition shrink-0 flex items-center gap-1">
-                    <i data-lucide="save" class="w-3 h-3"></i> Re-Save
-                </button>
-            `;
-
-            itemNode.querySelector('button').onclick = () => {
-                const anchor = document.createElement('a');
-                anchor.href = logItem.objectUrl; 
-                anchor.download = logItem.name; 
-                anchor.click();
-                showMessage("Re-triggered download stream bundle.");
-            };
-
-            container.prepend(itemNode);
-            lucide.createIcons();
-        }
-
+        // Programmatically generate individual, localized copy capabilities inside chat modules
         function appendChatMessageBubble(content, isSender = true) {
             const streamArea = document.getElementById('chatStreamArea');
             const placeholder = document.getElementById('chatEmptyPlaceholder');
             if(placeholder) placeholder.remove();
 
+            // Create container element row alignment layer
             const rowWrapper = document.createElement('div');
             rowWrapper.className = `flex w-full ${isSender ? 'justify-end' : 'justify-start'}`;
 
+            // Format dynamic bubbles via WhatsApp constraints
             const bubble = document.createElement('div');
             bubble.className = `max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-md flex items-end gap-3 relative group ${
                 isSender 
@@ -819,7 +482,10 @@ function initializePeerCloudEngine() {
             rowWrapper.appendChild(bubble);
             streamArea.appendChild(rowWrapper);
 
+            // Re-render new Lucide assets injected directly inside nodes
             lucide.createIcons();
+
+            // Auto-scroll context container pipeline downward
             streamArea.scrollTop = streamArea.scrollHeight;
         }
 
@@ -835,6 +501,140 @@ function initializePeerCloudEngine() {
             textInputField.value = ""; 
             showMessage("Text message beamed over!", true);
         }
+
+        function parseInboundPayloadMessage(payload) {
+            if(typeof payload === 'string') {
+                const msg = JSON.parse(payload);
+                
+                if(msg.type === 'textClip') {
+                    appendChatMessageBubble(msg.content, false);
+                    switchTab('clipboard');
+                    showMessage("Inbound text clipboard message arrived!", true);
+                    if(navigator.vibrate) navigator.vibrate([80, 40, 80]);
+                    return;
+                }
+
+                if(msg.type === 'meta') {
+                    expectedName = msg.name; expectedSize = msg.size; expectedMime = msg.mime;
+                    receivedChunks = [];
+                    document.getElementById('receiveSuccessState').classList.add('hidden');
+                    document.getElementById('popupMetaText').innerHTML = `File: <strong>${msg.name}</strong> (${(msg.size/(1024*1024)).toFixed(2)} MB)`;
+                    
+                    const popup = document.getElementById('incomingRequestPopup');
+                    popup.classList.remove('-translate-y-40', 'opacity-0', 'pointer-events-none');
+                    popup.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                    switchTab('receive');
+                }
+                if(msg.type === 'accept') {
+                    executeBinaryStreamOutflow();
+                }
+            } else {
+                receivedChunks.push(payload);
+                let currentTotal = receivedChunks.reduce((a, b) => a + b.byteLength, 0);
+                
+                document.getElementById('receiveProgressWrapper').classList.remove('hidden');
+                document.getElementById('receiveStatusPlaceholder').classList.add('hidden');
+                document.getElementById('receiveFileName').innerText = expectedName;
+                
+                let pct = Math.round((currentTotal / expectedSize) * 100);
+                document.getElementById('receiveFileProgress').style.width = `${pct}%`;
+                document.getElementById('receiveFilePercent').innerText = `${pct}%`;
+                document.getElementById('receiveFileSize').innerText = `${(currentTotal/(1024*1024)).toFixed(1)} / ${(expectedSize/(1024*1024)).toFixed(1)} MB`;
+
+                let elapsed = (performance.now() - timeStart) / 1000;
+                if (elapsed > 0) {
+                    document.getElementById('receiveFileSpeed').innerText = ((currentTotal / 1024 / 1024) / elapsed).toFixed(1) + " MB/s";
+                }
+
+                if(currentTotal >= expectedSize) {
+                    finalizeDownloadAssembly();
+                }
+            }
+        }
+
+        function acceptFileDownloadStream() {
+            closeInboundPopup();
+            timeStart = performance.now();
+            networkConnection.send(JSON.stringify({ type: 'accept' }));
+        }
+
+        function closeInboundPopup() {
+            const popup = document.getElementById('incomingRequestPopup');
+            popup.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+            popup.classList.add('-translate-y-40', 'opacity-0', 'pointer-events-none');
+        }
+
+        async function executeBinaryStreamOutflow() {
+            document.getElementById('sendProgressWrapper').classList.remove('hidden');
+            document.getElementById('sendSuccessState').classList.add('hidden');
+            document.getElementById('sendFileName').innerText = currentFile.name;
+            document.getElementById('sendFileSize').innerText = (currentFile.size/(1024*1024)).toFixed(1) + " MB";
+            timeStart = performance.now();
+
+            let offset = 0;
+            const fileReader = new FileReader();
+            
+            const readNextSlice = () => {
+                if (offset < currentFile.size) {
+                    const slice = currentFile.slice(offset, offset + HIGH_SPEED_CHUNK);
+                    fileReader.readAsArrayBuffer(slice);
+                }
+            };
+
+            fileReader.onload = async (e) => {
+                if (networkConnection.dataChannel && networkConnection.dataChannel.bufferedAmount > 8388608) {
+                    await new Promise(resolve => {
+                        const checkInterval = setInterval(() => {
+                            if (networkConnection.dataChannel.bufferedAmount < 2097152) {
+                                clearInterval(checkInterval);
+                                resolve();
+                            }
+                        }, 4);
+                    });
+                }
+
+                networkConnection.send(e.target.result);
+                offset += e.target.result.byteLength;
+
+                let pct = Math.round((offset / currentFile.size) * 100);
+                document.getElementById('sendFileProgress').style.width = `${pct}%`;
+                document.getElementById('sendFilePercent').innerText = `${pct}%`;
+                
+                let elapsed = (performance.now() - timeStart) / 1000;
+                if (elapsed > 0) {
+                    document.getElementById('sendFileSpeed').innerText = ((offset / 1024 / 1024) / elapsed).toFixed(1) + " MB/s";
+                }
+
+                if(offset < currentFile.size) {
+                    readNextSlice();
+                } else {
+                    document.getElementById('sendProgressWrapper').classList.add('hidden');
+                    document.getElementById('sendSuccessState').classList.remove('hidden');
+                    showMessage("File transfer completed successfully!", true);
+                }
+            };
+
+            readNextSlice();
+        }
+
+        function finalizeDownloadAssembly() {
+            const blob = new Blob(receivedChunks, { type: expectedMime });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url; 
+            anchor.download = expectedName; 
+            anchor.click();
+            
+            document.getElementById('receiveProgressWrapper').classList.add('hidden');
+            document.getElementById('receiveSuccessState').classList.remove('hidden');
+            showMessage("File package downloaded successfully!", true);
+            
+            if(navigator.vibrate) navigator.vibrate(300);
+            receivedChunks = [];
+        }
     </script>
+
+    <script src="https://pl29463975.effectivecpmnetwork.com/92/67/ca/9267ca1bdd23a47b538de364185e6986.js"></script>
+
 </body>
 </html>
